@@ -3,7 +3,7 @@ from app import db
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-
+    tg_id = db.Column(db.Integer, unique=True, nullable=False)
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
 
 class Task(db.Model):

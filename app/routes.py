@@ -48,21 +48,33 @@ def get_tasks():
     tasks = Task.query.all()
     return jsonify([{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks])
 
-@tasks_bp.route('/tasks/<int:task_id>', methods=['GET'])
+@tasks_bp.route('/task/<int:task_id>', methods=['GET'])
 def get_task(task_id):
     task = Task.query.get_or_404(task_id)
     return jsonify({'title': task.title, 'description': task.description})
 
+@tasks_bp.route('/tasks/<int:tg_id>', methods=['GET'])
+def get_user_tasks(tg_id):
+    user = User.query.filter_by(tg_id=tg_id).first()
+    print(user)
+    if user:
+        tasks = user.tasks.all()
+        print(tasks)
+        return jsonify([{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks])
+    return ''
+
 @tasks_bp.route('/tasks', methods=['POST'])
 def create_task():
     data = request.get_json()
+    user_id = User.query.filter_by(tg_id=data.get('tg_id')).first().id
+
     new_task = Task(
         title=data['title'],
         description=data['description'],
         hours_spent=data.get('hours_spent', 0),
         deadline=data.get('deadline'),
         importance=data.get('importance'),
-        user_id=data.get('user_id')
+        user_id=user_id
     )
     db.session.add(new_task)
     db.session.commit()
@@ -77,7 +89,7 @@ def update_task(task_id):
     db.session.commit()
     return jsonify({'id': task.id, 'title': task.title, 'description': task.description})
 
-@tasks_bp.route('/tasks/<int:task_id>', methods=['DELETE'])
+@tasks_bp.route('/task/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
     db.session.delete(task)

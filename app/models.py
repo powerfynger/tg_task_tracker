@@ -12,6 +12,6 @@ class Task(db.Model):
     description = db.Column(db.String(256))
     hours_spent = db.Column(db.Integer, default=0)
     deadline = db.Column(db.DateTime)
-    importance = db.Column(db.String(32))
+    priority = db.Column(db.Integer, default=0)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))

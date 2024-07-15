@@ -66,14 +66,18 @@ def get_user_tasks(tg_id):
 @tasks_bp.route('/tasks', methods=['POST'])
 def create_task():
     data = request.get_json()
-    user_id = User.query.filter_by(tg_id=data.get('tg_id')).first().id
+    user = User.query.filter_by(tg_id=data.get('tg_id')).first()
+    try:
+        user_id = user.id
+    except:
+        return '', 400
 
     new_task = Task(
         title=data['title'],
         description=data['description'],
         hours_spent=data.get('hours_spent', 0),
         deadline=data.get('deadline'),
-        importance=data.get('importance'),
+        priority=data.get('priority'),
         user_id=user_id
     )
     db.session.add(new_task)

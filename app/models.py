@@ -13,5 +13,17 @@ class Task(db.Model):
     hours_spent = db.Column(db.Integer, default=0)
     deadline = db.Column(db.DateTime)
     priority = db.Column(db.Integer, default=0)
-
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def to_dict(self):
+        return {
+        'id': self.id,
+        'title': self.title,
+        'description': self.description,
+        'hours_spent': self.hours_spent,
+        'deadline': self.deadline.isoformat() if self.deadline else None,
+        'priority': self.priority,
+        'user_id': self.user_id
+        }
+
+        

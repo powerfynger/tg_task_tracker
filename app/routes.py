@@ -46,12 +46,7 @@ def delete_user(user_id):
 @tasks_bp.route('/tasks', methods=['GET'])
 def get_tasks():
     tasks = Task.query.all()
-    return jsonify([{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks])
-
-@tasks_bp.route('/task/<int:task_id>', methods=['GET'])
-def get_task(task_id):
-    task = Task.query.get_or_404(task_id)
-    return jsonify({'title': task.title, 'description': task.description})
+    return jsonify([task.to_dict() for task in tasks])
 
 @tasks_bp.route('/tasks/<int:tg_id>', methods=['GET'])
 def get_user_tasks(tg_id):
@@ -60,10 +55,10 @@ def get_user_tasks(tg_id):
     if user:
         tasks = user.tasks.all()
         print(tasks)
-        return jsonify([{'id': task.id, 'title': task.title, 'description': task.description} for task in tasks])
+        return jsonify([task.to_dict() for task in tasks])
     return ''
 
-@tasks_bp.route('/tasks', methods=['POST'])
+@tasks_bp.route('/task', methods=['POST'])
 def create_task():
     data = request.get_json()
     user = User.query.filter_by(tg_id=data.get('tg_id')).first()
@@ -82,20 +77,39 @@ def create_task():
     )
     db.session.add(new_task)
     db.session.commit()
-    return jsonify({'id': new_task.id, 'title': new_task.title, 'description': new_task.description}), 201
+    return jsonify(new_task.to_dict()), 201
 
-@tasks_bp.route('/tasks/<int:task_id>', methods=['PUT'])
+@tasks_bp.route('/task/<int:task_id>', methods=['GET'])
+def get_task(task_id):
+    task = Task.query.get_or_404(task_id)
+    return jsonify(task.to_dict())
+
+@tasks_bp.route('/task/<int:task_id>', methods=['PUT'])
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
+    
     task.title = data.get('title', task.title)
     task.description = data.get('description', task.description)
+    task.hours_spent = data.get('hours_spent', task.hours_spent)
+    task.deadline = data.get('deadline', task.deadline)
+    task.priority = data.get('priority', task.priority)
+    task.user_id = data.get('user_id', task.user_id)
+
     db.session.commit()
-    return jsonify({'id': task.id, 'title': task.title, 'description': task.description})
+    return jsonify(task.to_dict())
 
 @tasks_bp.route('/task/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
+    data = request.get_json()
+    
+    reason = data.get('is_completed', False)
+    if reason:
+        # TODO:
+        # Увеличить поле пользователя содержащее кол-во выполненных задач
+        pass
+
     db.session.delete(task)
     db.session.commit()
     return '', 204

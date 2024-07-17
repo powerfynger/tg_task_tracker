@@ -152,6 +152,8 @@ async def edit_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("Изменить описание", callback_data=f"edit_description_{task_id}")],
             [InlineKeyboardButton("Изменить дедлайн", callback_data=f"edit_deadline_{task_id}")],
             [InlineKeyboardButton("Изменить приоритет", callback_data=f"edit_priority_{task_id}")],
+            [InlineKeyboardButton("Удалить", callback_data=f"delete_{task_id}")],
+            [InlineKeyboardButton("Выполнить", callback_data=f"complete_{task_id}")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -209,13 +211,35 @@ async def delete_task_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Выберите задачу для удаления:", reply_markup=reply_markup)
 
+async def complete_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    data = {
+        "is_completed":True
+    }
+
+    task_id = int(query.data.split("_")[1])
+    response = requests.get(f"http://127.0.0.1:5000/api/task/{task_id}")
+
+    task_title = response.json()['title']
+    response = requests.delete(f"http://127.0.0.1:5000/api/task/{task_id}", json=data)
+    if response.status_code == 204:
+        await query.edit_message_text(f"Задача '{task_title}' была успешно выполнена, поздравляю!")
+    else:
+        await query.edit_message_text("Задача не найдена.")
+
 async def delete_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    data = {
+        "is_completed":False
+    }
 
     task_id = int(query.data.split("_")[1])
-    task_title = query.data.split("_")[0]
-    response = requests.delete(f"http://127.0.0.1:5000/api/task/{task_id}")
+    response = requests.get(f"http://127.0.0.1:5000/api/task/{task_id}")
+
+    task_title = response.json()['title']
+    response = requests.delete(f"http://127.0.0.1:5000/api/task/{task_id}", json=data)
     if response.status_code == 204:
         await query.edit_message_text(f"Задача '{task_title}' была успешно удалена.")
     else:
@@ -240,6 +264,7 @@ def main():
     application.add_handler(CommandHandler('create', create_task_command))
     application.add_handler(CommandHandler('delete', delete_task_command))
     application.add_handler(CallbackQueryHandler(delete_task_button, pattern='^delete_'))
+    application.add_handler(CallbackQueryHandler(complete_task_button, pattern='^complete_'))
     application.add_handler(CommandHandler('edit', edit_task_command))
     application.add_handler(CallbackQueryHandler(edit_task_button, pattern='^edit_task_'))
 

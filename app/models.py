@@ -4,6 +4,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     tg_id = db.Column(db.Integer, unique=True, nullable=False)
+    last_time_interaction = db.Column(db.DateTime)
+    tasks_completed = db.Column(db.Integer, default=0)
+
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
 
 class Task(db.Model):

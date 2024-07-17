@@ -68,12 +68,12 @@ def create_task():
         return '', 400
 
     new_task = Task(
-        title=data['title'],
-        description=data['description'],
-        hours_spent=data.get('hours_spent', 0),
-        deadline=data.get('deadline'),
-        priority=data.get('priority'),
-        user_id=user_id
+        title=data.get('title'),
+        description=data.get('description', None),
+        hours_spent=data.get('hours_spent', None),
+        deadline=data.get('deadline', None),
+        priority=data.get('priority', None),
+        user_id=user_id,
     )
     db.session.add(new_task)
     db.session.commit()

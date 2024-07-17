@@ -63,19 +63,27 @@ async def create_task_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     title = update.message.text
     context.user_data['title'] = title
+    await save_task(update, context)
+    await edit_task_command(update, context)
+    # TODO:
+    # Пока так побудет, мб поменяю потом
+    return
+    
+
+    title = update.message.text
+    context.user_data['title'] = title
     await update.message.reply_text("Пожалуйста, введите описание задачи:")
     context.user_data['command'] = 'save_task'
 
 async def save_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    description = update.message.text
     title = context.user_data['title']
     user_tg = update.effective_user
 
-    data = {"title": title, "description": description, "tg_id": user_tg.id}
+    data = {"title": title, "tg_id": user_tg.id}
     response = requests.post("http://127.0.0.1:5000/api/task", json=data)
 
     if response.status_code == 201:
-        await update.message.reply_text(f"Задача была добавлена: {title} - {description}")
+        await update.message.reply_text(f"Задача была добавлена: {title}")
     else:
         await update.message.reply_text(f"Задача не была добавлена.")
     del context.user_data['command']

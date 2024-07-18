@@ -13,7 +13,7 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(128), nullable=False)
     description = db.Column(db.String(256))
-    hours_spent = db.Column(db.Integer, default=0)
+    days_spent = db.Column(db.Integer, default=0)
     deadline = db.Column(db.DateTime)
     priority = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -23,7 +23,7 @@ class Task(db.Model):
         'id': self.id,
         'title': self.title,
         'description': self.description,
-        'hours_spent': self.hours_spent,
+        'days_spent': self.days_spent,
         'deadline': self.deadline.isoformat() if self.deadline else None,
         'priority': self.priority,
         'user_id': self.user_id

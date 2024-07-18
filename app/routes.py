@@ -46,15 +46,17 @@ def delete_user(user_id):
 @tasks_bp.route('/tasks', methods=['GET'])
 def get_tasks():
     tasks = Task.query.all()
+
     return jsonify([task.to_dict() for task in tasks])
 
 @tasks_bp.route('/tasks/<int:tg_id>', methods=['GET'])
 def get_user_tasks(tg_id):
     user = User.query.filter_by(tg_id=tg_id).first()
-    print(user)
     if user:
-        tasks = user.tasks.all()
-        print(tasks)
+        # tasks = user.tasks.all()
+        tasks = user.tasks.order_by(Task.priority.desc())
+        for task in tasks:
+            print(task.to_dict())
         return jsonify([task.to_dict() for task in tasks])
     return ''
 
@@ -70,7 +72,7 @@ def create_task():
     new_task = Task(
         title=data.get('title'),
         description=data.get('description', None),
-        hours_spent=data.get('hours_spent', None),
+        days_spent=data.get('days_spent', None),
         deadline=data.get('deadline', None),
         priority=data.get('priority', None),
         user_id=user_id,
@@ -91,13 +93,16 @@ def update_task(task_id):
     
     task.title = data.get('title', task.title)
     task.description = data.get('description', task.description)
-    task.hours_spent = data.get('hours_spent', task.hours_spent)
+    task.days_spent = data.get('days_spent', task.days_spent)
     task.deadline = data.get('deadline', task.deadline)
-    task.priority = data.get('priority', task.priority)
     task.user_id = data.get('user_id', task.user_id)
-
     db.session.commit()
-    return jsonify(task.to_dict())
+    try:
+        task.priority = int(data.get('priority', task.priority))
+    except:
+        return jsonify(task.to_dict()), 400    
+    
+    return jsonify(task.to_dict()), 200
 
 @tasks_bp.route('/task/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):

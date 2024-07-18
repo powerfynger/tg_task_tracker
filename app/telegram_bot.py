@@ -2,6 +2,9 @@ import sys
 import os
 import asyncio
 import requests
+from datetime import datetime
+import locale
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(os.path.join(script_dir, '..'))
@@ -51,7 +54,7 @@ async def tasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if tasks:
         message = "Ваши задачи:\n"
         for num, task in enumerate(tasks):
-            message += f"• {num + 1}. {task['title']}: {task['description']}\n"
+            message += f"➤ {task['title']}\n"
     else:
         message = "У вас нет задач, используйте /create, чтобы создать новую задачу."
     await update.message.reply_text(message)
@@ -102,7 +105,7 @@ async def edit_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     task = (
         f"Название: {task_json['title']}\n"
         f"Описание: {task_json['description']}\n"
-        f"Дедлайн: {task_json['deadline']}\n"
+        f"Дедлайн: {datetime.fromisoformat(task_json['deadline']).strftime('%d.%m')}\n"
         f"Приоритет: {task_json['priority']}\n"
     )
 
@@ -143,7 +146,7 @@ async def edit_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         task_info = (
             f"Название: {task['title']}\n"
             f"Описание: {task['description']}\n"
-            f"Дедлайн: {task['deadline']}\n"
+            f"Дедлайн: {datetime.fromisoformat(task['deadline']).strftime('%d.%m')}\n"
             f"Приоритет: {task['priority']}\n"
         )
         
@@ -183,7 +186,7 @@ async def edit_deadline_button(update: Update, context: ContextTypes.DEFAULT_TYP
     await query.answer()
         
     
-    await query.edit_message_text("Пожалуйста, введите новый дедлайн задачи:")
+    await query.edit_message_text("Пожалуйста, введите новое количество дней до дедлайна:")
     context.user_data['command'] = 'edit_task'
     context.user_data['field'] = 'deadline'
 

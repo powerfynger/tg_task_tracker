@@ -1,4 +1,6 @@
 from flask import Blueprint, jsonify, request
+from datetime import datetime, timedelta
+
 from . import db
 from .models import Task, User
 
@@ -55,8 +57,6 @@ def get_user_tasks(tg_id):
     if user:
         # tasks = user.tasks.all()
         tasks = user.tasks.order_by(Task.priority.desc())
-        for task in tasks:
-            print(task.to_dict())
         return jsonify([task.to_dict() for task in tasks])
     return ''
 
@@ -94,11 +94,16 @@ def update_task(task_id):
     task.title = data.get('title', task.title)
     task.description = data.get('description', task.description)
     task.days_spent = data.get('days_spent', task.days_spent)
-    task.deadline = data.get('deadline', task.deadline)
     task.user_id = data.get('user_id', task.user_id)
-    db.session.commit()
+    task.deadline = data.get('deadline', task.deadline)
+    try:
+        days_bf_deadline = data.get('deadline')
+        task.deadline = datetime.now() + timedelta(days=int(days_bf_deadline))
+    except:
+        pass
     try:
         task.priority = int(data.get('priority', task.priority))
+        db.session.commit()
     except:
         return jsonify(task.to_dict()), 400    
     

@@ -72,9 +72,9 @@ def create_task():
     new_task = Task(
         title=data.get('title'),
         description=data.get('description', None),
-        days_spent=data.get('days_spent', None),
-        deadline=data.get('deadline', None),
-        priority=data.get('priority', None),
+        days_spent=data.get('days_spent', 0),
+        deadline=data.get('deadline', datetime.now() + timedelta(weeks=1)),
+        priority=data.get('priority', 0),
         user_id=user_id,
     )
     db.session.add(new_task)
@@ -95,10 +95,9 @@ def update_task(task_id):
     task.description = data.get('description', task.description)
     task.days_spent = data.get('days_spent', task.days_spent)
     task.user_id = data.get('user_id', task.user_id)
-    task.deadline = data.get('deadline', task.deadline)
     try:
-        days_bf_deadline = data.get('deadline')
-        task.deadline = datetime.now() + timedelta(days=int(days_bf_deadline))
+        days_bf_deadline = int(data.get('deadline'))
+        task.deadline = datetime.now() + timedelta(days=days_bf_deadline)
     except:
         pass
     try:

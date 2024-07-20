@@ -21,6 +21,9 @@ from telegram.ext import (
     CallbackQueryHandler,
 )
 
+from telegram.constants import ParseMode
+
+
 
 
 # from app import create_app, db, app
@@ -59,11 +62,11 @@ async def tasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tasks = get_user_tasks(user_tg.id)
     if tasks:
         message = "Ваши задачи:\n"
-        for num, task in enumerate(tasks):
-            message += f"➤ {task['title']}\n"
+        for task in tasks:
+            message += f"➥ <i><b>{task['title']}</b></i> \nДней до дедлайна: {(datetime.fromisoformat(task['deadline']) - datetime.now()).days + 1}\n\n"
     else:
         message = "У вас нет задач, используйте /create, чтобы создать новую задачу."
-    await update.message.reply_text(message)
+    await update.message.reply_text(text=message, parse_mode=ParseMode.HTML)
 
 async def create_task_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(text="Отмена", callback_data="cancel_button")]]
@@ -384,7 +387,7 @@ def main():
     application.add_handler(CommandHandler('create', create_task_command))
     application.add_handler(CommandHandler('delete', delete_task_command))
     application.add_handler(CommandHandler('edit', edit_task_command))
-    application.add_handler(CommandHandler('mark', mark_task_command))
+    application.add_handler(CommandHandler('daily', edit_task_command))
     application.add_handler(CommandHandler('test', send_tasks_checkbox))
 
     application.add_handler(CallbackQueryHandler(delete_task_button, pattern='^delete_'))

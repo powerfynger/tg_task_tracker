@@ -50,7 +50,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/tasks - Посмотреть все задачи\n"
         "/create - Создать новую задачу\n"
         "/delete - Удалить задачу\n"
-        "/edit - Редактировать задачу"
+        "/edit - Редактировать задачу\n"
+        "/plan - Запланировать задачи на завтра\n"
+        "/daily - Посмотреть запланированные на сегодня задачи\n"
     )
 
 async def tasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -326,7 +328,8 @@ async def mark_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton(text="Выбрать/Отмена", callback_data=f"toggle_task")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text("Если есть, отметьте задачи, которыми Вы сегодня занимались:", reply_markup=reply_markup)
+    # await query.edit_message_text("Если есть, отметьте задачи, которыми Вы сегодня занимались:", reply_markup=reply_markup)
+    await query.edit_message_reply_markup(reply_markup=reply_markup)
 
 async def toggle_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -378,9 +381,6 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await edit_task(update, context)
 
 async def send_tasks_checkbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    # response = requests.get(f"http://127.0.0.1:5000/api/users")
-
     url = f"http://127.0.0.1:5000/api/users"
     response = api_client.get(url)
 
@@ -393,8 +393,6 @@ async def send_tasks_checkbox(update: Update, context: ContextTypes.DEFAULT_TYPE
             # Возможно добавить удаление юзера из БД, если его больше не существует
             pass
 
-
-
 async def schedule_daily_task(task, hour, minute):
     while True:
         now = datetime.now()
@@ -405,6 +403,48 @@ async def schedule_daily_task(task, hour, minute):
         await asyncio.sleep(wait_seconds)
         await task()
 
+async def plan_tomorrow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_tg = update.effective_user
+    tasks = get_user_tasks(user_tg.id)
+    if not tasks:
+        await update.message.reply_text("У вас нет задач, используйте /create, чтобы создать новую задачу.")
+        return
+
+    keyboard = [[InlineKeyboardButton(text=f"{task['title']}", callback_data=f"plan_tomorrow_{task['id']}")] for task in tasks]
+    keyboard.append([InlineKeyboardButton(text="Отмена", callback_data=f"cancel_button")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Выберите задачу для планирования на завтра:", reply_markup=reply_markup)
+
+async def plan_tomorrow_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    task_id = int(query.data.split("_")[2])
+    user_tg = update.effective_user
+    
+    data = {'planned_for_tomorrow': True}
+    url = f"http://127.0.0.1:5000/api/task/{task_id}"
+    response = api_client.put(url, json=data)
+
+    if response.status_code == 200:
+        await query.edit_message_text("Задача успешно запланирована на завтра.")
+    else:
+        await query.edit_message_text("Не удалось запланировать задачу.")
+
+async def tasks_for_tomorrow_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_tg = update.effective_user
+
+    tasks = [task for task in get_user_tasks(user_tg.id) if task['planned_for_tomorrow']]
+    tasks = sorted(tasks, key=lambda task: task['priority'], reverse=True)
+    if tasks:
+        message = "Ваши задачи на завтра:\n"
+        for task in tasks:
+            message += f"➥ <i><b>{task['title']}</b></i>\nПриоритет: {task['priority']}\n\n"
+    else:
+        message = "У вас нет задач на завтра.\nИспользуйте /plan для планирования."
+    await update.message.reply_text(text=message, parse_mode=ParseMode.HTML)
+
 def main():
     application = Application.builder().token(Config.TELEGRAM_BOT_TOKEN).build()
 
@@ -414,8 +454,12 @@ def main():
     application.add_handler(CommandHandler('create', create_task_command))
     application.add_handler(CommandHandler('delete', delete_task_command))
     application.add_handler(CommandHandler('edit', edit_task_command))
-    application.add_handler(CommandHandler('daily', edit_task_command))
+    application.add_handler(CommandHandler('plan', plan_tomorrow_command))
+    application.add_handler(CommandHandler('daily', tasks_for_tomorrow_command))
     application.add_handler(CommandHandler('test', send_tasks_checkbox))
+
+
+    application.add_handler(CallbackQueryHandler(plan_tomorrow_button, pattern='^plan_tomorrow_'))
 
     application.add_handler(CallbackQueryHandler(delete_task_button, pattern='^delete_'))
     application.add_handler(CallbackQueryHandler(complete_task_button, pattern='^complete_'))

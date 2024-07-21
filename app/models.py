@@ -24,6 +24,8 @@ class Task(db.Model):
     days_spent = db.Column(db.Integer, default=0)
     deadline = db.Column(db.DateTime)
     priority = db.Column(db.Integer, default=0)
+    planned_for_tomorrow = db.Column(db.Boolean, default=False)
+
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     def to_dict(self):
@@ -34,6 +36,7 @@ class Task(db.Model):
         'days_spent': self.days_spent,
         'deadline': self.deadline.isoformat() if self.deadline else None,
         'priority': self.priority,
+        'planned_for_tomorrow': self.planned_for_tomorrow,
         'user_id': self.user_id
         }
 

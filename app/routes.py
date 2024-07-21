@@ -29,7 +29,7 @@ def get_users():
     users = User.query.all()
     return jsonify([user.to_dict() for user in users])
 
-@users_bp.route('/users', methods=['POST'])
+@users_bp.route('/user', methods=['POST'])
 @require_api_key
 def create_user():
     data = request.get_json()
@@ -98,6 +98,7 @@ def create_task():
         days_spent=data.get('days_spent', 0),
         deadline=data.get('deadline', datetime.now() + timedelta(weeks=1)),
         priority=data.get('priority', 0),
+        planned_for_tomorrow=data.get('planned_for_tomorrow', False),
         user_id=user_id,
     )
     db.session.add(new_task)
@@ -115,10 +116,11 @@ def get_task(task_id):
 def update_task(task_id):
     task = Task.query.get_or_404(task_id)
     data = request.get_json()
-    
+    print(data)
     task.title = data.get('title', task.title)
     task.description = data.get('description', task.description)
     task.days_spent = data.get('days_spent', task.days_spent)
+    task.planned_for_tomorrow = data.get('planned_for_tomorrow', task.planned_for_tomorrow)
     task.user_id = data.get('user_id', task.user_id)
     try:
         days_bf_deadline = int(data.get('deadline'))

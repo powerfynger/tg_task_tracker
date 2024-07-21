@@ -14,12 +14,11 @@ def require_api_key(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         api_key = request.headers.get('x-api-key')
-        print(api_key)
         # TODO:
         # Получение ключа
         if api_key != app.config['API_KEY_BACKEND']:
             print(f"{api_key}\n\n\n")
-            return jsonify({"msg": "Invalid API key"}), 403
+            return jsonify({"msg": "Invalid API key"}), 401
         return f(*args, **kwargs)
     return decorated_function
 
@@ -46,7 +45,7 @@ def create_user():
     )
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'id': new_user.id, 'username': new_user.username, 'tg_id': new_user.tg_id}), 201
+    return jsonify({'id': new_user.id, 'username': new_user.username, 'tg_id': new_user.tg_id}), 200
 
 @users_bp.route('/users/<int:user_id>', methods=['PUT'])
 @require_api_key
@@ -56,7 +55,7 @@ def update_user(user_id):
     user.username = data.get('username', user.username)
     user.tg_id = data.get('tg_id', user.tg_id)
     db.session.commit()
-    return jsonify({'id': user.id, 'username': user.username, 'tg_id': user.tg_id})
+    return jsonify({'id': user.id, 'username': user.username, 'tg_id': user.tg_id}), 200
 
 @users_bp.route('/users/<int:user_id>', methods=['DELETE'])
 @require_api_key
@@ -64,7 +63,7 @@ def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     db.session.delete(user)
     db.session.commit()
-    return '', 204
+    return '', 200
 
 @tasks_bp.route('/tasks', methods=['GET'])
 @require_api_key
@@ -91,7 +90,7 @@ def create_task():
     try:
         user_id = user.id
     except:
-        return '', 400
+        return '', 418
 
     new_task = Task(
         title=data.get('title'),
@@ -109,7 +108,7 @@ def create_task():
 @require_api_key
 def get_task(task_id):
     task = Task.query.get_or_404(task_id)
-    return jsonify(task.to_dict())
+    return jsonify(task.to_dict()), 200
 
 @tasks_bp.route('/task/<int:task_id>', methods=['PUT'])
 @require_api_key
@@ -142,9 +141,8 @@ def delete_task(task_id):
     
     reason = data.get('is_completed', False)
     if reason:
-        # TODO:
-        # Увеличить поле пользователя содержащее кол-во выполненных задач
-        pass
+        user = User.query.get_or_404(task.user_id)
+        user.tasks_completed += 1
 
     db.session.delete(task)
     db.session.commit()

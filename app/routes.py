@@ -27,13 +27,7 @@ def require_api_key(f):
 @require_api_key
 def get_users():
     users = User.query.all()
-    return jsonify([{'id': user.id, 'username': user.username, 'tg_id': user.tg_id} for user in users])
-
-@users_bp.route('/users/<int:user_id>', methods=['GET'])
-@require_api_key
-def get_user(user_id):
-    user = User.query.get_or_404(user_id)
-    return jsonify({'username': user.username, 'tg_id': user.tg_id})
+    return jsonify([user.to_dict() for user in users])
 
 @users_bp.route('/users', methods=['POST'])
 @require_api_key
@@ -45,9 +39,15 @@ def create_user():
     )
     db.session.add(new_user)
     db.session.commit()
-    return jsonify({'id': new_user.id, 'username': new_user.username, 'tg_id': new_user.tg_id}), 200
+    return jsonify(new_user.to_dict()), 200
 
-@users_bp.route('/users/<int:user_id>', methods=['PUT'])
+@users_bp.route('/user/<int:user_id>', methods=['GET'])
+@require_api_key
+def get_user(user_id):
+    user = User.query.get_or_404(user_id)
+    return jsonify(user.to_dict())
+
+@users_bp.route('/user/<int:user_id>', methods=['PUT'])
 @require_api_key
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -55,9 +55,9 @@ def update_user(user_id):
     user.username = data.get('username', user.username)
     user.tg_id = data.get('tg_id', user.tg_id)
     db.session.commit()
-    return jsonify({'id': user.id, 'username': user.username, 'tg_id': user.tg_id}), 200
+    return jsonify(user.to_dict()), 200
 
-@users_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@users_bp.route('/user/<int:user_id>', methods=['DELETE'])
 @require_api_key
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)

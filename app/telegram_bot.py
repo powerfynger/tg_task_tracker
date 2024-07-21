@@ -36,7 +36,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = {"tg_id": user_tg.id, "username": user_tg.username}
     # response = requests.post("http://127.0.0.1:5000/api/users", json=data)
 
-    url = f"http://127.0.0.1:5000/api/users"
+    url = f"http://127.0.0.1:5000/api/user"
     response = api_client.post(url, json=data)
 
     await context.bot.send_message(
@@ -250,15 +250,19 @@ async def complete_task_button(update: Update, context: ContextTypes.DEFAULT_TYP
     # response = requests.get(f"http://127.0.0.1:5000/api/task/{task_id}")
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.get(url)
-    
-
     task_title = response.json()['title']
+
+    url = f"http://127.0.0.1:5000/api/user/{response.json()['user_id']}"
+    response = api_client.get(url)
+    tasks_completed = response.json()['tasks_completed']
+
     # response = requests.delete(f"http://127.0.0.1:5000/api/task/{task_id}", json=data)
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.delete(url, json=data)
     
     if response.status_code == 204:
-        await query.edit_message_text(f"Задача '{task_title}' была успешно выполнена, поздравляю!")
+        await query.edit_message_text(f"Задача '<b><i>{task_title}</i></b>' была успешно выполнена!\n\nВсего задач выполнено: \
+{tasks_completed+1}.", parse_mode=ParseMode.HTML)
     else:
         await query.edit_message_text("Задача не найдена.")
 

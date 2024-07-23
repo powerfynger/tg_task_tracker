@@ -40,4 +40,8 @@ class Task(db.Model):
         'user_id': self.user_id
         }
 
-        
+def reset_planned_for_tomorrow():
+    tasks = Task.query.filter_by(planned_for_tomorrow=True).all()
+    for task in tasks:
+        task.planned_for_tomorrow = False
+    db.session.commit()        

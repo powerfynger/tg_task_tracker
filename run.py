@@ -16,18 +16,21 @@ def schedule_daily_clear():
         time.sleep((midnight - now).total_seconds())
         with app.app_context():
             reset_planned_for_tomorrow() 
-    
+
+def run_backend_app():
+    app.run(debug=True,use_reloader=False)
 
 if __name__ == '__main__':
     schedule.every().day.at("00:00").do(reset_planned_for_tomorrow)
 
-    bot_thread = threading.Thread(target=run_bot)
     schedule_thread = threading.Thread(target=schedule_daily_clear)
+    backend_thread = threading.Thread(target=run_backend_app)
 
     schedule_thread.daemon = True
-    bot_thread.daemon = True
+    backend_thread.daemon = True
 
-    bot_thread.start()
     schedule_thread.start()
+    backend_thread.start()
 
-    app.run(debug=True,use_reloader=False)
+    run_bot()
+

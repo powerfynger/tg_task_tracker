@@ -353,8 +353,9 @@ async def toggle_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = f"Отличная работа!\nСегодня Вы продвинулись в {tasks_counter} задаче."
     else:
         text = f"Отличная работа!\nСегодня Вы продвинулись в {tasks_counter} задачах."
+    text += "\n\nХотите запланировать задачи на завтра? /plan"
+
     await query.edit_message_text(text)
-    
     try:
         del context.user_data['tasks']
     except:

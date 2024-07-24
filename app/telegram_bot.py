@@ -364,7 +364,6 @@ async def toggle_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    print(context.user_data)
 
     context.user_data.clear()
     await query.edit_message_text("Вы закрыли меню.")
@@ -380,7 +379,7 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif command == 'edit_task':
             await edit_task(update, context)
 
-async def send_tasks_checkbox(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def send_tasks_checkbox():
     url = f"http://127.0.0.1:5000/api/users"
     response = api_client.get(url)
 
@@ -477,7 +476,7 @@ def main():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    loop.create_task(schedule_daily_task(send_tasks_checkbox, 23, 0))
+    loop.create_task(schedule_daily_task(send_tasks_checkbox, 23, 00))
     application.run_polling()
     
 if __name__ == '__main__':

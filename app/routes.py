@@ -47,6 +47,15 @@ def get_user(user_id):
     user = User.query.get_or_404(user_id)
     return jsonify(user.to_dict())
 
+@users_bp.route('/user_tg/<int:tg_id>', methods=['GET'])
+@require_api_key
+def get_user_tg(tg_id):
+    user = User.query.filter_by(tg_id=tg_id).first()
+    if user:
+        return jsonify(user.to_dict())
+    return ''
+
+
 @users_bp.route('/user/<int:user_id>', methods=['PUT'])
 @require_api_key
 def update_user(user_id):
@@ -54,6 +63,7 @@ def update_user(user_id):
     data = request.get_json()
     user.username = data.get('username', user.username)
     user.tg_id = data.get('tg_id', user.tg_id)
+    user.is_subscribed_to_daily= data.get('is_subscribed_to_daily', user.is_subscribed_to_daily)
     db.session.commit()
     return jsonify(user.to_dict()), 200
 

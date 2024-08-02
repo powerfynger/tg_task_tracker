@@ -6,6 +6,7 @@ class User(db.Model):
     tg_id = db.Column(db.Integer, unique=True, nullable=False)
     last_time_interaction = db.Column(db.DateTime)
     tasks_completed = db.Column(db.Integer, default=0)
+    is_subscribed_to_daily = db.Column(db.Boolean, default=True)
 
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
     def to_dict(self):
@@ -15,6 +16,7 @@ class User(db.Model):
         'tg_id': self.tg_id,
         'last_time_interaction': self.last_time_interaction,
         'tasks_completed': self.tasks_completed,
+        'is_subscribed_to_daily': self.is_subscribed_to_daily
         }
 
 class Task(db.Model):

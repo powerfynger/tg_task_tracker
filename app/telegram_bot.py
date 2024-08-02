@@ -386,6 +386,8 @@ async def send_tasks_checkbox():
 
     data = response.json()
     for user in data:
+        if user['is_subscribed_to_daily'] == False:
+            continue
         try:
             await mark_task_command(user['tg_id'])
         except error.BadRequest as e:
@@ -445,6 +447,46 @@ async def tasks_for_tomorrow_command(update: Update, context: ContextTypes.DEFAU
         message = "У вас нет задач на завтра.\nИспользуйте /plan для планирования."
     await update.message.reply_text(text=message, parse_mode=ParseMode.HTML)
 
+async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_tg = update.effective_user
+    url = f"http://127.0.0.1:5000/api/user_tg/{user_tg.id}"
+
+    response = api_client.get(url)
+    data = response.json()
+    context.user_data['user_id'] = data['id']
+
+
+    if data['is_subscribed_to_daily'] == True:
+        msg_reply_text = "Подписка на ежевечерний опрос <b><i>активна</i></b>."
+        keyboard = [[InlineKeyboardButton(text=f"Отписаться", callback_data=f"sub_0")]]
+    else:
+        msg_reply_text = "Подписка на ежевечерний опрос <b><i>отключена</i></b>."
+        keyboard = [[InlineKeyboardButton(text=f"Подписаться", callback_data=f"sub_1")]]
+    keyboard.append([InlineKeyboardButton(text="Отмена", callback_data=f"cancel_button")])
+
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+
+async def change_subscription_state_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    state = int(query.data.split("_")[-1])
+    url = f"http://127.0.0.1:5000/api/user/{context.user_data['user_id']}"
+    if state == 1:
+        data = {'is_subscribed_to_daily': True}
+    else:
+        data = {'is_subscribed_to_daily': False}
+        
+    response = api_client.put(url, json=data)
+
+    if state == 1:
+        await query.edit_message_text("Вы успешно подписались!")
+    else:
+        await query.edit_message_text("Вы успешно отписались!")
+    
+    context.user_data.clear()
+
+
 def main():
     application = Application.builder().token(Config.TELEGRAM_BOT_TOKEN).build()
 
@@ -456,6 +498,7 @@ def main():
     application.add_handler(CommandHandler('edit', edit_task_command))
     application.add_handler(CommandHandler('plan', plan_tomorrow_command))
     application.add_handler(CommandHandler('daily', tasks_for_tomorrow_command))
+    application.add_handler(CommandHandler('subscription', subscription_command))
     application.add_handler(CommandHandler('test', send_tasks_checkbox))
 
 
@@ -470,6 +513,7 @@ def main():
     application.add_handler(CallbackQueryHandler(edit_priority_button, pattern='^edit_priority_'))
     application.add_handler(CallbackQueryHandler(mark_task_button, pattern='^mark_task_'))
     application.add_handler(CallbackQueryHandler(toggle_task, pattern='^toggle_task'))
+    application.add_handler(CallbackQueryHandler(change_subscription_state_button, pattern='^sub_'))
     application.add_handler(CallbackQueryHandler(cancel_button, pattern='cancel_button'))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))

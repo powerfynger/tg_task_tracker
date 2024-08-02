@@ -53,6 +53,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/edit - Редактировать задачу\n"
         "/plan - Запланировать задачи на завтра\n"
         "/daily - Посмотреть запланированные на сегодня задачи\n"
+        "/subscription - Изменить статус подписки на ежевечерний опрос\n"
     )
 
 async def tasks_command(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -22,7 +22,7 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 from config import Config
-from .api_client import api_client 
+from .api_client import api_client
 
 bot = Bot(token=Config.TELEGRAM_BOT_TOKEN)
 
@@ -81,7 +81,7 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # TODO:
     # Пока так побудет, мб поменяю потом
     return
-    
+
 
     title = update.message.text
     context.user_data['title'] = title
@@ -93,13 +93,8 @@ async def save_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg = update.effective_user
 
     data = {"title": title, "tg_id": user_tg.id}
-    # response = requests.post("http://127.0.0.1:5000/api/task", json=data)
-    
     url = f"http://127.0.0.1:5000/api/task"
     response = api_client.post(url, json=data)
-
-    
-    
 
     if response.status_code == 201:
         await update.message.reply_text(f"Задача была добавлена: {title}")
@@ -116,7 +111,6 @@ async def edit_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg = update.effective_user
 
     data = {str(field): text}
-    # response = requests.put(f"http://127.0.0.1:5000/api/task/{task_id}", json=data)
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.put(url, json=data)
     task_json = response.json()
@@ -131,8 +125,8 @@ async def edit_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Задача была обновлена:\n{task}")
     else:
         await update.message.reply_text(f"Задача не была обновлена:\n{task}")
-    
-        
+
+
     del context.user_data['command']
     del context.user_data['task_id']
     del context.user_data['field']
@@ -158,11 +152,10 @@ async def edit_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    task_id = int(query.data.split("_")[2])
-    # response = requests.get(f"http://127.0.0.1:5000/api/task/{task_id}")
+    task_id = int(query.data.split("_")[-1])
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.get(url)
-    
+
     if response.status_code == 200:
         task = response.json()
         task_info = (
@@ -172,13 +165,13 @@ async def edit_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Приоритет: {task['priority']}\n"
             f"Дней потрачено: {task['days_spent']}\n"
         )
-        
+
         keyboard = [
             [InlineKeyboardButton("Изменить название", callback_data=f"edit_title_{task_id}")],
             [InlineKeyboardButton("Изменить описание", callback_data=f"edit_description_{task_id}")],
             [InlineKeyboardButton("Изменить дедлайн", callback_data=f"edit_deadline_{task_id}")],
             [InlineKeyboardButton("Изменить приоритет", callback_data=f"edit_priority_{task_id}")],
-            [InlineKeyboardButton("Удалить", callback_data=f"delete_{task_id}")],
+            [InlineKeyboardButton("Удалить", callback_data=f"delete_task_{task_id}")],
             [InlineKeyboardButton("Выполнить", callback_data=f"complete_{task_id}")],
         ]
 
@@ -202,7 +195,7 @@ async def edit_title_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def edit_description_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-        
+
     await query.edit_message_text("Пожалуйста, введите новое описание задачи:")
     context.user_data['command'] = 'edit_task'
     context.user_data['field'] = 'description'
@@ -210,8 +203,8 @@ async def edit_description_button(update: Update, context: ContextTypes.DEFAULT_
 async def edit_deadline_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-        
-    
+
+
     await query.edit_message_text("Пожалуйста, введите новое количество дней до дедлайна:")
     context.user_data['command'] = 'edit_task'
     context.user_data['field'] = 'deadline'
@@ -219,7 +212,7 @@ async def edit_deadline_button(update: Update, context: ContextTypes.DEFAULT_TYP
 async def edit_priority_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-        
+
     await query.edit_message_text("Пожалуйста, введите новый приоритет задачи:")
     context.user_data['command'] = 'edit_task'
     context.user_data['field'] = 'priority'
@@ -234,7 +227,7 @@ async def delete_task_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     keyboard: List[List[InlineKeyboardButton]] = [
-        [InlineKeyboardButton(text=f"{task['title']}", callback_data=f"delete_{task['id']}")]
+        [InlineKeyboardButton(text=f"{task['title']}", callback_data=f"delete_task_{task['id']}")]
         for task in tasks
     ]
     keyboard.append([InlineKeyboardButton(text="Отмена", callback_data=f"cancel_button")])
@@ -250,19 +243,20 @@ async def complete_task_button(update: Update, context: ContextTypes.DEFAULT_TYP
     }
 
     task_id = int(query.data.split("_")[1])
-    # response = requests.get(f"http://127.0.0.1:5000/api/task/{task_id}")
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.get(url)
     task_title = response.json()['title']
 
-    url = f"http://127.0.0.1:5000/api/user/{response.json()['user_id']}"
-    response = api_client.get(url)
-    tasks_completed = response.json()['tasks_completed']
+    data = {'user_id': response.json()['user_id']}
+    url = f"http://127.0.0.1:5000/api/user"
+    response = api_client.get(url, json=data)
+    data = response.json()[0]
+    
+    tasks_completed = data['tasks_completed']
 
-    # response = requests.delete(f"http://127.0.0.1:5000/api/task/{task_id}", json=data)
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.delete(url, json=data)
-    
+
     if response.status_code == 204:
         await query.edit_message_text(f"Задача '<b><i>{task_title}</i></b>' была успешно выполнена!\n\nВсего задач выполнено: \
 {tasks_completed+1}.", parse_mode=ParseMode.HTML)
@@ -299,7 +293,7 @@ async def mark_task_command(tg_id):
         for task in tasks
     ]
     keyboard.append([InlineKeyboardButton(text="Выбрать/Отмена", callback_data=f"toggle_task")])
-    
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await bot.send_message(chat_id=tg_id, text="Если есть, отметьте задачи, которыми Вы сегодня занимались:", reply_markup=reply_markup)
@@ -310,7 +304,7 @@ async def mark_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     task_id = int(query.data.split("_")[-2])
     tg_id = int(query.data.split("_")[-1])
-    
+
     if 'tasks' in context.user_data:
         tasks = context.user_data.get('tasks')
     else:
@@ -318,10 +312,10 @@ async def mark_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['tasks'] = tasks
 
     task = next(task for task in tasks if task['id'] == task_id)
-    
+
     task['title'] = f"✘ {task['title']}" if '✘' not in task['title'] else task['title'][1:]
 
-    
+
     keyboard = [
         [InlineKeyboardButton(text=f"{task['title']}", callback_data=f"mark_task_{task['id']}_{tg_id}")]
         for task in tasks
@@ -382,19 +376,65 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await edit_task(update, context)
 
 async def send_tasks_checkbox():
-    url = f"http://127.0.0.1:5000/api/users"
-    response = api_client.get(url)
-
+    data = {'is_subscribed_to_daily': True}
+    url = f"http://127.0.0.1:5000/api/user"
+    response = api_client.get(url, json=data)
     data = response.json()
     for user in data:
-        if user['is_subscribed_to_daily'] == False:
-            continue
         try:
             await mark_task_command(user['tg_id'])
         except error.BadRequest as e:
             # TODO:
             # Возможно добавить удаление юзера из БД, если его больше не существует
             pass
+
+async def poll_timers():
+    while True:
+        data = {'has_timer': True}
+        url = f"http://127.0.0.1:5000/api/user"
+        response = api_client.get(url, json=data)
+        data = response.json()
+        for user in data:
+            try:
+                data = {'tg_id' : user['tg_id']}
+                url = f"http://127.0.0.1:5000/api/timer"
+                response = api_client.get(url, json=data)
+                if response.status_code == 200:
+                    keyboard = []
+                    timer = response.json()
+                    date_format = "%a, %d %b %Y %H:%M:%S %Z"
+                    parsed_date = datetime.strptime(timer.get('time_end'), date_format)
+                    current_time = datetime.now()
+                    time_difference = parsed_date - current_time
+
+                    if time_difference.total_seconds()  < 0:
+                        data = {'state': True, 'tg_id': user['tg_id']}
+                        url = f"http://127.0.0.1:5000/api/timer"
+                        response = api_client.put(url, json=data)
+                        data = response.json()
+                        timer = response.json()
+                        date_format = "%a, %d %b %Y %H:%M:%S %Z"
+                        
+                        parsed_date = datetime.strptime(data.get('time_end'), date_format)
+                        current_time = datetime.now()
+
+                        time_difference = parsed_date - current_time
+                        
+                        time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
+                        if timer['state'] == True:
+                            msg_reply_text = f"<b>Период закончился</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
+                        else:
+                            msg_reply_text = f"<b>Период закончился</b>\nДо конца периода отдыха осталось: {time_left_in_minutes} (мин)"
+                        keyboard.append([InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")])
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        await bot.send_message(chat_id=user['tg_id'], text=msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+            except error.BadRequest as e:
+                # TODO:
+                # Возможно добавить удаление юзера из БД, если его больше не существует
+                pass
+
+            
+            await asyncio.sleep(30)
 
 async def schedule_daily_task(task, hour, minute):
     while True:
@@ -425,7 +465,7 @@ async def plan_tomorrow_button(update: Update, context: ContextTypes.DEFAULT_TYP
 
     task_id = int(query.data.split("_")[2])
     user_tg = update.effective_user
-    
+
     data = {'planned_for_tomorrow': True}
     url = f"http://127.0.0.1:5000/api/task/{task_id}"
     response = api_client.put(url, json=data)
@@ -450,10 +490,11 @@ async def tasks_for_tomorrow_command(update: Update, context: ContextTypes.DEFAU
 
 async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_tg = update.effective_user
-    url = f"http://127.0.0.1:5000/api/user_tg/{user_tg.id}"
+    data = {'tg_id': user_tg.id}
+    url = f"http://127.0.0.1:5000/api/user"
 
-    response = api_client.get(url)
-    data = response.json()
+    response = api_client.get(url, json=data)
+    data = response.json()[0]
     context.user_data['user_id'] = data['id']
 
 
@@ -477,15 +518,95 @@ async def change_subscription_state_button(update: Update, context: ContextTypes
         data = {'is_subscribed_to_daily': True}
     else:
         data = {'is_subscribed_to_daily': False}
-        
+
     response = api_client.put(url, json=data)
 
     if state == 1:
         await query.edit_message_text("Вы успешно подписались!")
     else:
         await query.edit_message_text("Вы успешно отписались!")
-    
+
     context.user_data.clear()
+
+async def create_timer_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_tg = update.effective_user
+    keyboard = []
+    data = {'tg_id' : user_tg.id}
+    url = f"http://127.0.0.1:5000/api/timer"
+    response = api_client.get(url,json=data)
+    if response.status_code == 200:
+        data = response.json()
+        date_format = "%a, %d %b %Y %H:%M:%S %Z"
+        parsed_date = datetime.strptime(data.get('time_end'), date_format)
+        current_time = datetime.now()
+
+        time_difference = parsed_date - current_time
+        
+        time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
+        msg_reply_text = f"<b>Таймер запущен</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
+        keyboard.append([InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")])
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+        return
+
+    
+    
+    url = f"http://127.0.0.1:5000/api/timers"
+    response = api_client.get(url)
+    data = response.json()
+
+    msg_reply_text = "<b><i>Доступные таймеры</i></b>."
+
+    for timer_id in data:
+        keyboard.append([InlineKeyboardButton(text=data[timer_id], callback_data=f"create_timer_{timer_id}")])
+
+
+
+    keyboard.append([InlineKeyboardButton(text="Отмена", callback_data=f"cancel_button")])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+
+async def create_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_tg = update.effective_user
+
+    url = f"http://127.0.0.1:5000/api/timer"
+    timer_id = int(query.data.split("_")[-1])
+    data = {"type_id": timer_id, "tg_id": user_tg.id}
+    response = api_client.post(url, json=data)
+    data = response.json()
+
+
+    date_format = "%a, %d %b %Y %H:%M:%S %Z"
+    parsed_date = datetime.strptime(data.get('time_end'), date_format)
+    current_time = datetime.now()
+
+    time_difference = parsed_date - current_time
+    
+    time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
+    msg_reply_text = f"<b>Таймер запущен</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
+    
+    keyboard = [[InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+
+    await query.edit_message_text(text=msg_reply_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
+    await query.answer()
+
+async def delete_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_tg = update.effective_user
+
+    url = f"http://127.0.0.1:5000/api/timer"
+    data = {"tg_id": user_tg.id}
+    response = api_client.delete(url, json=data)
+    if response.status_code == 200:
+        msg_reply_text = "Таймер успешно сброшен."
+    else:
+        msg_reply_text = "Не удалось сбросить таймер, возможно, его не существует."
+
+    await query.edit_message_text(text=msg_reply_text)
+    await query.answer()
 
 
 def main():
@@ -500,12 +621,13 @@ def main():
     application.add_handler(CommandHandler('plan', plan_tomorrow_command))
     application.add_handler(CommandHandler('daily', tasks_for_tomorrow_command))
     application.add_handler(CommandHandler('subscription', subscription_command))
+    application.add_handler(CommandHandler('timer', create_timer_command))
     application.add_handler(CommandHandler('test', send_tasks_checkbox))
 
 
     application.add_handler(CallbackQueryHandler(plan_tomorrow_button, pattern='^plan_tomorrow_'))
 
-    application.add_handler(CallbackQueryHandler(delete_task_button, pattern='^delete_'))
+    application.add_handler(CallbackQueryHandler(delete_task_button, pattern='^delete_task_'))
     application.add_handler(CallbackQueryHandler(complete_task_button, pattern='^complete_'))
     application.add_handler(CallbackQueryHandler(edit_task_button, pattern='^edit_task_'))
     application.add_handler(CallbackQueryHandler(edit_title_button, pattern='^edit_title_'))
@@ -515,15 +637,20 @@ def main():
     application.add_handler(CallbackQueryHandler(mark_task_button, pattern='^mark_task_'))
     application.add_handler(CallbackQueryHandler(toggle_task, pattern='^toggle_task'))
     application.add_handler(CallbackQueryHandler(change_subscription_state_button, pattern='^sub_'))
+    application.add_handler(CallbackQueryHandler(create_timer_button, pattern='^create_timer_'))
+    application.add_handler(CallbackQueryHandler(delete_timer_button, pattern='^delete_timer'))
+
     application.add_handler(CallbackQueryHandler(cancel_button, pattern='cancel_button'))
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     loop.create_task(schedule_daily_task(send_tasks_checkbox, 23, 00))
+    loop.create_task(poll_timers())
+
     application.run_polling()
-    
+
 if __name__ == '__main__':
     main()

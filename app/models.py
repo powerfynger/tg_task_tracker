@@ -7,8 +7,11 @@ class User(db.Model):
     last_time_interaction = db.Column(db.DateTime)
     tasks_completed = db.Column(db.Integer, default=0)
     is_subscribed_to_daily = db.Column(db.Boolean, default=True)
+    has_timer = db.Column(db.Boolean, default=False)
 
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
+    timer = db.relationship('Timer', uselist=False, back_populates='user')
+    
     def to_dict(self):
         return {
         'id': self.id,
@@ -16,7 +19,8 @@ class User(db.Model):
         'tg_id': self.tg_id,
         'last_time_interaction': self.last_time_interaction,
         'tasks_completed': self.tasks_completed,
-        'is_subscribed_to_daily': self.is_subscribed_to_daily
+        'is_subscribed_to_daily': self.is_subscribed_to_daily,
+        'has_timer': self.has_timer
         }
 
 class Task(db.Model):
@@ -40,6 +44,26 @@ class Task(db.Model):
         'priority': self.priority,
         'planned_for_tomorrow': self.planned_for_tomorrow,
         'user_id': self.user_id
+        }
+class Timer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    type_id = db.Column(db.Integer, default=0)
+    
+    time_start = db.Column(db.DateTime)
+    time_end = db.Column(db.DateTime)
+    state = db.Column(db.Boolean, default=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    
+    user = db.relationship('User', back_populates='timer')
+    def to_dict(self):
+        return {
+        'id': self.id,
+        'type_id': self.type_id,
+        'time_start': self.time_start,
+        'time_end': self.time_end,
+        'state': self.state,
+        'user_id': self.user_id,
         }
 
 def reset_planned_for_tomorrow():

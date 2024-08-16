@@ -4,11 +4,29 @@ from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 
 from . import db, app
-from .models import Task, User
+from .models import Task, User, Timer
+
+timers_names = {
+    0 : 'Pomodoro: 25/5',
+    1 : 'Neo Pomodoro: 52/17',
+    2 : 'School: 45/15',
+    3 : 'Deep: 90/30',
+    4 : 'Test'
+}
+
+timers_duration = {
+    0 : (25, 5),
+    1 : (52, 17),
+    2 : (45, 15),
+    3 : (90, 30),
+    4 : (1, 1)
+}
 
 tasks_bp = Blueprint('tasks_bp', __name__)
 
 users_bp = Blueprint('users_bp', __name__)
+
+timers_bp = Blueprint('timers_bp', __name__)
 
 def require_api_key(f):
     @wraps(f)
@@ -28,6 +46,27 @@ def require_api_key(f):
 def get_users():
     users = User.query.all()
     return jsonify([user.to_dict() for user in users])
+
+@users_bp.route('/user', methods=['GET'])
+@require_api_key
+def get_user_info():
+    try:
+        data = request.get_json()
+    except:
+        return '', 400
+
+    query = User.query
+    for key, value in data.items():
+        if hasattr(User, key): 
+            query = query.filter(getattr(User, key) == value)
+
+    users = query.all()
+    
+    if users:
+        return jsonify([user.to_dict() for user in users])  
+    
+    return '', 404
+
 
 @users_bp.route('/user', methods=['POST'])
 @require_api_key
@@ -50,6 +89,10 @@ def get_user(user_id):
 @users_bp.route('/user_tg/<int:tg_id>', methods=['GET'])
 @require_api_key
 def get_user_tg(tg_id):
+    try:
+        data = request.get_json()
+    except:
+        data = None
     user = User.query.filter_by(tg_id=tg_id).first()
     if user:
         return jsonify(user.to_dict())
@@ -159,3 +202,82 @@ def delete_task(task_id):
     db.session.delete(task)
     db.session.commit()
     return '', 204
+
+@tasks_bp.route('/timers', methods=['GET'])
+@require_api_key
+def get_timers():
+    return timers_names, 200
+
+@tasks_bp.route('/timer', methods=['PUT'])
+@require_api_key
+def update_timer():
+    try:
+        data = request.get_json()
+    except:
+        return '', 400    
+    
+    user = User.query.filter_by(tg_id=data.get('tg_id')).first()
+    if user.has_timer:
+        timer = user.timer
+        if data.get('state') is not None:
+            timer.state = not timer.state 
+            timer.time_end=datetime.now() + timedelta(minutes=timers_duration[timer.type_id][1-timer.state])
+            db.session.commit()
+        return jsonify(timer.to_dict()), 200
+    return '', 400
+
+
+@tasks_bp.route('/timer', methods=['GET'])
+@require_api_key
+def get_user_timer():
+    try:
+        data = request.get_json()
+    except:
+        return '', 400
+    query = User.query
+    for key, value in data.items():
+        if hasattr(User, key): 
+            query = query.filter(getattr(User, key) == value)
+
+    user = query.first()
+        
+    if user.has_timer:
+        timer = user.timer
+        return jsonify(timer.to_dict()), 200
+    return '', 400
+
+@tasks_bp.route('/timer', methods=['POST'])
+@require_api_key
+def create_timer():
+    data = request.get_json()
+    user = User.query.filter_by(tg_id=data.get('tg_id')).first()
+    try:
+        user_id = user.id
+    except:
+        return '', 418
+
+    new_timer = Timer(
+        type_id=data.get('type_id'),
+        time_start=datetime.now(),
+        state=True,
+        time_end=datetime.now() + 
+        timedelta(minutes=timers_duration[data.get('type_id')][0]),
+        user_id=user_id,
+    )
+    user.has_timer = True
+    db.session.add(new_timer)
+    db.session.commit()
+    return jsonify(new_timer.to_dict())
+
+@tasks_bp.route('/timer', methods=['DELETE'])
+@require_api_key
+def delete_timer():
+    data = request.get_json()
+    user = User.query.filter_by(tg_id=data.get('tg_id')).first()
+    if user.has_timer:
+        timer = user.timer
+        user.has_timer = False
+        db.session.delete(timer)
+        db.session.commit()
+        return '', 200
+    return '', 400

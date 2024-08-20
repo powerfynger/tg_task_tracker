@@ -394,6 +394,9 @@ async def poll_timers():
         data = {'has_timer': True}
         url = f"http://127.0.0.1:5000/api/user"
         response = api_client.get(url, json=data)
+        if response.status_code != 200:
+            await asyncio.sleep(30)
+            continue
         data = response.json()
         for user in data:
             try:
@@ -407,7 +410,6 @@ async def poll_timers():
                     parsed_date = datetime.strptime(timer.get('time_end'), date_format)
                     current_time = datetime.now()
                     time_difference = parsed_date - current_time
-
                     if time_difference.total_seconds()  < 0:
                         data = {'state': True, 'tg_id': user['tg_id']}
                         url = f"http://127.0.0.1:5000/api/timer"
@@ -432,7 +434,7 @@ async def poll_timers():
             except error.BadRequest as e:
                 # TODO:
                 # Возможно добавить удаление юзера из БД, если его больше не существует
-                pass
+                print(e)
 
             
             await asyncio.sleep(30)

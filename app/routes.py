@@ -11,6 +11,7 @@ timers_names = {
     1 : 'Neo Pomodoro: 52/17',
     2 : 'School: 45/15',
     3 : 'Deep: 90/30',
+    4 : 'Test: 1/1'
 }
 
 timers_duration = {
@@ -18,6 +19,7 @@ timers_duration = {
     1 : (52, 17),
     2 : (45, 15),
     3 : (90, 30),
+    4 : (1, 1)
 }
 
 tasks_bp = Blueprint('tasks_bp', __name__)

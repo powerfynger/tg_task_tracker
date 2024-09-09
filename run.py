@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from app import create_app, db
 from app.telegram_bot import main as run_bot
-from app.models import reset_planned_for_tomorrow
+from app.models import reset_planned_for_tomorrow, reset_productivity_time
 
 app = create_app()
 
@@ -16,6 +16,7 @@ def schedule_daily_clear():
         time.sleep((midnight - now).total_seconds())
         with app.app_context():
             reset_planned_for_tomorrow() 
+            reset_productivity_time()
 
 def run_backend_app():
     app.run(debug=True,use_reloader=False)

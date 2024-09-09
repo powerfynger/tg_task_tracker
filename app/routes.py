@@ -11,7 +11,7 @@ timers_names = {
     1 : 'Neo Pomodoro: 52/17',
     2 : 'School: 45/15',
     3 : 'Deep: 90/30',
-    4 : 'Test: 1/1'
+    # 4 : 'Test: 1/1'
 }
 
 timers_duration = {
@@ -19,7 +19,7 @@ timers_duration = {
     1 : (52, 17),
     2 : (45, 15),
     3 : (90, 30),
-    4 : (1, 1)
+    # 4 : (1, 1)
 }
 
 tasks_bp = Blueprint('tasks_bp', __name__)
@@ -221,6 +221,7 @@ def update_timer():
         timer = user.timer
         if data.get('state') is not None:
             timer.state = not timer.state 
+            user.productivity_time += timers_duration[timer.type_id][timer.state]
             timer.time_end=datetime.now() + timedelta(minutes=timers_duration[timer.type_id][1-timer.state])
             db.session.commit()
         return jsonify(timer.to_dict()), 200
@@ -238,8 +239,11 @@ def get_user_timer():
     for key, value in data.items():
         if hasattr(User, key): 
             query = query.filter(getattr(User, key) == value)
-
+    
     user = query.first()
+        
+    if user is None:
+        return '', 400
         
     if user.has_timer:
         timer = user.timer

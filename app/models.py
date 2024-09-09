@@ -8,7 +8,8 @@ class User(db.Model):
     tasks_completed = db.Column(db.Integer, default=0)
     is_subscribed_to_daily = db.Column(db.Boolean, default=True)
     has_timer = db.Column(db.Boolean, default=False)
-
+    productivity_time = db.Column(db.Integer, default=0)
+    
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
     timer = db.relationship('Timer', uselist=False, back_populates='user')
     
@@ -20,7 +21,8 @@ class User(db.Model):
         'last_time_interaction': self.last_time_interaction,
         'tasks_completed': self.tasks_completed,
         'is_subscribed_to_daily': self.is_subscribed_to_daily,
-        'has_timer': self.has_timer
+        'has_timer': self.has_timer,
+        'productivity_time': self.productivity_time
         }
 
 class Task(db.Model):
@@ -71,3 +73,11 @@ def reset_planned_for_tomorrow():
     for task in tasks:
         task.planned_for_tomorrow = False
     db.session.commit()        
+
+def reset_productivity_time():
+    users = User.query.filter_by(productivity_time!=0).all()
+    for user in users:
+        user.productivity_time = 0
+    db.session.commit()        
+
+    pass

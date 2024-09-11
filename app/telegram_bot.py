@@ -304,7 +304,7 @@ async def mark_task_command(tg_id):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await bot.send_message(chat_id=tg_id, text=f"Сегодня Вы были продуктивны: <i><b>{product_min}≈{product_hour}</b></i> (мин).\n\
+    await bot.send_message(chat_id=tg_id, text=f"Сегодня Вы были продуктивны: <i><b>{product_min} (мин), что составляет примерно {product_hour} (час)!</b></i> .\n\
 Если есть, отметьте задачи из списка, которыми Вы сегодня занимались:", reply_markup=reply_markup, parse_mode=ParseMode.HTML)
 
 async def mark_task_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -433,11 +433,10 @@ async def poll_timers():
                         data = {'state': True, 'tg_id': user['tg_id']}
                         url = f"http://127.0.0.1:5000/api/timer"
                         response = api_client.put(url, json=data)
-                        data = response.json()
                         timer = response.json()
                         date_format = "%a, %d %b %Y %H:%M:%S %Z"
                         
-                        parsed_date = datetime.strptime(data.get('time_end'), date_format)
+                        parsed_date = datetime.strptime(timer.get('time_end'), date_format)
                         current_time = datetime.now()
 
                         time_difference = parsed_date - current_time
@@ -447,7 +446,8 @@ async def poll_timers():
                             msg_reply_text = f"<b>Период закончился</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
                         else:
                             msg_reply_text = f"<b>Период закончился</b>\nДо конца периода отдыха осталось: {time_left_in_minutes} (мин)"
-                        keyboard.append([InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")])
+                        keyboard.append([InlineKeyboardButton(text="Стоп", callback_data="delete_timer")])
+                        keyboard.append([InlineKeyboardButton(text="Пропуск этапа", callback_data="skip_timer")])
                         reply_markup = InlineKeyboardMarkup(keyboard)
                         await bot.send_message(chat_id=user['tg_id'], text=msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
             except error.BadRequest as e:
@@ -566,7 +566,8 @@ async def create_timer_command(update: Update, context: ContextTypes.DEFAULT_TYP
         
         time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
         msg_reply_text = f"<b>Таймер запущен</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
-        keyboard.append([InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")])
+        keyboard.append([InlineKeyboardButton(text="Стоп", callback_data=f"delete_timer")])
+        keyboard.append([InlineKeyboardButton(text="Пропуск этапа", callback_data="skip_timer")])
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
         return
@@ -608,13 +609,52 @@ async def create_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
     msg_reply_text = f"<b>Таймер запущен</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
     
-    keyboard = [[InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")]]
+    keyboard = [[InlineKeyboardButton(text="Стоп", callback_data=f"delete_timer")]]
+    keyboard.append([InlineKeyboardButton(text="Пропуск этапа", callback_data=f"skip_timer")])
     reply_markup = InlineKeyboardMarkup(keyboard)
 
 
     await query.edit_message_text(text=msg_reply_text, parse_mode=ParseMode.HTML, reply_markup=reply_markup)
     await query.answer()
 
+async def skip_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    user_tg = update.effective_user
+    
+    data = {'tg_id' : user_tg.id}
+    url = f"http://127.0.0.1:5000/api/timer"
+    response = api_client.get(url, json=data)
+
+    response = api_client.get(url, json=data)
+    if response.status_code == 200:
+        keyboard = []
+        timer = response.json()
+        
+        data = {'state': not timer['state'], 'tg_id': user_tg.id}
+        url = f"http://127.0.0.1:5000/api/timer"
+        response = api_client.put(url, json=data)
+        timer = response.json()
+        
+        date_format = "%a, %d %b %Y %H:%M:%S %Z"
+        
+        parsed_date = datetime.strptime(timer.get('time_end'), date_format)
+        current_time = datetime.now()
+
+        time_difference = parsed_date - current_time
+        
+        time_left_in_minutes = int(time_difference.total_seconds() // 60) + 1
+
+        if timer['state'] == True:
+            msg_reply_text = f"<b>Период закончился</b>\nДо конца периода работы осталось: {time_left_in_minutes} (мин)"
+        else:
+            msg_reply_text = f"<b>Период закончился</b>\nДо конца периода отдыха осталось: {time_left_in_minutes} (мин)"
+        keyboard.append([InlineKeyboardButton(text="Сброс", callback_data=f"delete_timer")])
+        keyboard.append([InlineKeyboardButton(text="Пропуск этапа", callback_data="skip_timer")])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(text=msg_reply_text, reply_markup=reply_markup, parse_mode=ParseMode.HTML)
+    await query.answer()
+    
 async def delete_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_tg = update.effective_user
@@ -667,6 +707,7 @@ def main():
     application.add_handler(CallbackQueryHandler(change_subscription_state_button, pattern='^sub_'))
     application.add_handler(CallbackQueryHandler(create_timer_button, pattern='^create_timer_'))
     application.add_handler(CallbackQueryHandler(delete_timer_button, pattern='^delete_timer'))
+    application.add_handler(CallbackQueryHandler(skip_timer_button, pattern='^skip_timer'))
 
     application.add_handler(CallbackQueryHandler(cancel_button, pattern='cancel_button'))
 

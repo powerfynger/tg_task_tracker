@@ -69,15 +69,9 @@ class Timer(db.Model):
         }
 
 def reset_planned_for_tomorrow():
-    tasks = Task.query.filter_by(planned_for_tomorrow=True).all()
-    for task in tasks:
-        task.planned_for_tomorrow = False
+    Task.query.filter(planned_for_tomorrow = True).update({Task.planned_for_tomorrow: False})
     db.session.commit()        
 
 def reset_productivity_time():
-    users = User.query.filter_by(productivity_time!=0).all()
-    for user in users:
-        user.productivity_time = 0
+    User.query.filter(User.productivity_time != 0).update({User.productivity_time: 0})
     db.session.commit()        
-
-    pass

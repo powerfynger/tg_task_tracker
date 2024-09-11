@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 
 from . import db, app
-from .models import Task, User, Timer
+from .models import Task, User, Timer, reset_productivity_time, reset_planned_for_tomorrow
 
 timers_names = {
     0 : 'Pomodoro: 25/5',
@@ -218,10 +218,14 @@ def update_timer():
     
     user = User.query.filter_by(tg_id=data.get('tg_id')).first()
     if user.has_timer:
+        reset_productivity_time()
         timer = user.timer
-        if data.get('state') is not None:
+        state = data.get('state')
+        if state is not None:
+            if state is True:
+                user.productivity_time += int((datetime.now() - timer.time_start).total_seconds() // 60)
             timer.state = not timer.state 
-            user.productivity_time += timers_duration[timer.type_id][timer.state]
+            timer.time_start=datetime.now()
             timer.time_end=datetime.now() + timedelta(minutes=timers_duration[timer.type_id][1-timer.state])
             db.session.commit()
         return jsonify(timer.to_dict()), 200
@@ -281,6 +285,7 @@ def delete_timer():
     if user.has_timer:
         timer = user.timer
         user.has_timer = False
+        user.productivity_time += int((datetime.now() - timer.time_start).total_seconds() // 60)
         db.session.delete(timer)
         db.session.commit()
         return '', 200

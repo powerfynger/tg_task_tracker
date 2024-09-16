@@ -218,7 +218,6 @@ def update_timer():
     
     user = User.query.filter_by(tg_id=data.get('tg_id')).first()
     if user.has_timer:
-        reset_productivity_time()
         timer = user.timer
         state = data.get('state')
         if state is not None:

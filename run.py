@@ -23,6 +23,7 @@ def run_backend_app():
 
 if __name__ == '__main__':
     schedule.every().day.at("00:00").do(reset_planned_for_tomorrow)
+    schedule.every().day.at("00:00").do(reset_productivity_time)
 
     schedule_thread = threading.Thread(target=schedule_daily_clear)
     backend_thread = threading.Thread(target=run_backend_app)

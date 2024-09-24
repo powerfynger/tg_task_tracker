@@ -80,35 +80,29 @@ def create_user():
     db.session.commit()
     return jsonify(new_user.to_dict()), 200
 
-@users_bp.route('/user/<int:user_id>', methods=['GET'])
+@users_bp.route('/user', methods=['PUT'])
 @require_api_key
-def get_user(user_id):
-    user = User.query.get_or_404(user_id)
-    return jsonify(user.to_dict())
-
-@users_bp.route('/user_tg/<int:tg_id>', methods=['GET'])
-@require_api_key
-def get_user_tg(tg_id):
+def update_user():
     try:
         data = request.get_json()
     except:
-        data = None
-    user = User.query.filter_by(tg_id=tg_id).first()
-    if user:
-        return jsonify(user.to_dict())
-    return ''
+        return '', 400
+    if data.get('user_id'):
+        user = User.query.get_or_404(data.get('user_id'))
+    elif data.get('tg_id'):
+        user = User.query.filter_by(tg_id=data.get('tg_id')).first()
+    elif data.get('username'):
+        user = User.query.filter_by(username=data.get('username')).first()
+    else:
+        return '', 400
 
-
-@users_bp.route('/user/<int:user_id>', methods=['PUT'])
-@require_api_key
-def update_user(user_id):
-    user = User.query.get_or_404(user_id)
-    data = request.get_json()
-    user.username = data.get('username', user.username)
-    user.tg_id = data.get('tg_id', user.tg_id)
-    user.is_subscribed_to_daily= data.get('is_subscribed_to_daily', user.is_subscribed_to_daily)
+    for key, value in data.items():
+        if hasattr(user, key):
+            setattr(user, key, value)
+    
     db.session.commit()
     return jsonify(user.to_dict()), 200
+
 
 @users_bp.route('/user/<int:user_id>', methods=['DELETE'])
 @require_api_key

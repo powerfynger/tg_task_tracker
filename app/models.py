@@ -73,5 +73,7 @@ def reset_planned_for_tomorrow():
     db.session.commit()        
 
 def reset_productivity_time():
-    User.query.filter(User.productivity_time != 0).update({User.productivity_time: 0})
-    db.session.commit()        
+    users_to_reset = User.query.filter(User.productivity_time > 0).all()
+    for user in users_to_reset:
+        user.productivity_time = 0
+    db.session.commit()

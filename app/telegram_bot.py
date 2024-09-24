@@ -535,12 +535,12 @@ async def subscription_command(update: Update, context: ContextTypes.DEFAULT_TYP
 async def change_subscription_state_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     state = int(query.data.split("_")[-1])
-    url = f"http://127.0.0.1:5000/api/user/{context.user_data['user_id']}"
+    url = f"http://127.0.0.1:5000/api/user"
     if state == 1:
         data = {'is_subscribed_to_daily': True}
     else:
         data = {'is_subscribed_to_daily': False}
-
+    data['user_id'] = context.user_data['user_id']
     response = api_client.put(url, json=data)
 
     if state == 1:
@@ -677,6 +677,18 @@ async def delete_timer_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
 
+async def reset_productivity_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_tg = update.effective_user
+    
+    data = {'tg_id' : user_tg.id, 'productivity_time' : 0}
+    url = f"http://127.0.0.1:5000/api/user"
+    response = api_client.put(url, json=data)
+    if response.status_code == 200:
+        msg_reply_text = f"Время общей продуктивности сброшено, но мы всё помним, не сдавайтесь!"
+    else:
+        msg_reply_text = "Не удалось сбросить время общей продуктивности, возможно, Вас не существует."
+    await update.message.reply_text(msg_reply_text)   
+
 def main():
     application = Application.builder().token(Config.TELEGRAM_BOT_TOKEN).build()
 
@@ -690,8 +702,8 @@ def main():
     application.add_handler(CommandHandler('daily', tasks_for_tomorrow_command))
     application.add_handler(CommandHandler('subscription', subscription_command))
     application.add_handler(CommandHandler('timer', create_timer_command))
+    application.add_handler(CommandHandler('productivity_reset', reset_productivity_command))
     application.add_handler(CommandHandler('test', test_func))
-
 
     application.add_handler(CallbackQueryHandler(plan_tomorrow_button, pattern='^plan_tomorrow_'))
 
